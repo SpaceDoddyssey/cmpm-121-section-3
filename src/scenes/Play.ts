@@ -18,6 +18,9 @@ export default class Play extends Phaser.Scene {
 
   fired = false;
 
+  enemies: Enemy[] = [];
+  enemySpeed = 0.25;
+
   constructor() {
     super("play");
   }
@@ -37,6 +40,27 @@ export default class Play extends Phaser.Scene {
     this.left = this.#addKey("LEFT");
     this.right = this.#addKey("RIGHT");
 
+    this.addBackground();
+
+    this.addPlayerShip();
+
+    this.spawnEnemy("basic");
+    setTimeout(() => {
+      this.spawnEnemy("small");
+    }, 2000);
+  }
+
+  addPlayerShip() {
+    this.playerShip = this.add.rectangle(
+      100,
+      this.playerStartY,
+      50,
+      50,
+      0x6c3bbf,
+    );
+  }
+
+  addBackground() {
     this.starfield = this.add
       .tileSprite(
         0,
@@ -46,14 +70,6 @@ export default class Play extends Phaser.Scene {
         "starfield",
       )
       .setOrigin(0, 0);
-
-    this.playerShip = this.add.rectangle(
-      100,
-      this.playerStartY,
-      50,
-      50,
-      0x6c3bbf,
-    );
   }
 
   update(_timeMs: number, delta: number) {
@@ -68,6 +84,23 @@ export default class Play extends Phaser.Scene {
     if (this.playerShip!.y < 0) {
       this.resetShip();
     }
+
+    this.enemies.forEach((enemy) => {
+      enemy.move(delta);
+    });
+  }
+
+  private spawnEnemy(type: string) {
+    this.enemies.push(new Enemy(type, this));
+    let timeout;
+    if (type == "basic") {
+      timeout = Math.random() * 2000 + 500;
+    } else {
+      timeout = 5000;
+    }
+    setTimeout(() => {
+      this.spawnEnemy(type);
+    }, timeout);
   }
 
   private handleInput(delta: number) {
@@ -85,6 +118,7 @@ export default class Play extends Phaser.Scene {
 
   private resetShip() {
     this.playerShip!.y = this.playerStartY;
+    this.fired = false;
   }
 
   private moveShip(delta: number) {
@@ -97,5 +131,30 @@ export default class Play extends Phaser.Scene {
     } else {
       this.playerShip!.x = newPos;
     }
+  }
+}
+
+class Enemy {
+  sprite: Phaser.GameObjects.Rectangle;
+  moveSpeed: number;
+
+  constructor(type: string, scene: Phaser.Scene) {
+    let color;
+    let startingY;
+    if (type == "basic") {
+      this.moveSpeed = 0.3;
+      startingY = Math.random() * 400;
+      color = 0xff0000;
+    } else {
+      this.moveSpeed = 0.6;
+      startingY = 50;
+      color = 0xffffff;
+    }
+
+    this.sprite = scene.add.rectangle(900, startingY, 50, 50, color);
+  }
+
+  public move(delta: number) {
+    this.sprite.x -= delta * this.moveSpeed;
   }
 }
