@@ -8,9 +8,15 @@ export default class Play extends Phaser.Scene {
   right?: Phaser.Input.Keyboard.Key;
 
   starfield?: Phaser.GameObjects.TileSprite;
-  spinner?: Phaser.GameObjects.Shape;
+  playerShip?: Phaser.GameObjects.Shape;
 
-  rotationSpeed = Phaser.Math.PI2 / 1000; // radians per millisecond
+  moveSpeed = 0.2;
+  fireSpeed = 0.3;
+
+  edgePadding = 50;
+  playerStartY = 440;
+
+  fired = false;
 
   constructor() {
     super("play");
@@ -41,26 +47,55 @@ export default class Play extends Phaser.Scene {
       )
       .setOrigin(0, 0);
 
-    this.spinner = this.add.rectangle(100, 100, 50, 50, 0xff0000);
+    this.playerShip = this.add.rectangle(
+      100,
+      this.playerStartY,
+      50,
+      50,
+      0x6c3bbf,
+    );
   }
 
   update(_timeMs: number, delta: number) {
     this.starfield!.tilePositionX -= 4;
 
+    if (this.fired) {
+      this.playerShip!.y -= delta * this.fireSpeed;
+    } else {
+      this.handleInput(delta);
+    }
+
+    if (this.playerShip!.y < 0) {
+      this.resetShip();
+    }
+  }
+
+  private handleInput(delta: number) {
     if (this.left!.isDown) {
-      this.spinner!.rotation -= delta * this.rotationSpeed;
+      this.moveShip(-delta);
     }
     if (this.right!.isDown) {
-      this.spinner!.rotation += delta * this.rotationSpeed;
+      this.moveShip(delta);
     }
 
     if (this.fire!.isDown) {
-      this.tweens.add({
-        targets: this.spinner,
-        scale: { from: 1.5, to: 1 },
-        duration: 300,
-        ease: Phaser.Math.Easing.Sine.Out,
-      });
+      this.fired = true;
+    }
+  }
+
+  private resetShip() {
+    this.playerShip!.y = this.playerStartY;
+  }
+
+  private moveShip(delta: number) {
+    const newPos = this.playerShip!.x + delta * this.moveSpeed;
+    const rightEdge = this.game.canvas.width - this.edgePadding;
+    if (newPos < this.edgePadding) {
+      this.playerShip!.x = this.edgePadding;
+    } else if (newPos > rightEdge) {
+      this.playerShip!.x = rightEdge;
+    } else {
+      this.playerShip!.x = newPos;
     }
   }
 }
